@@ -79,6 +79,7 @@
       white-space: pre;
       user-select: none;
       pointer-events: none;
+      height: 100%;
     }
 
     .code-container {
@@ -153,7 +154,7 @@
   </div>
   <div class="container">
     <div class="editor-wrapper">
-      <div class="line-numbers" id="lineNumbers">1</div>
+      <div class="line-numbers" id="lineNumbers"></div>
       <div class="code-container">
         <textarea id="codeInput" spellcheck="false"></textarea>
         <div class="syntax-highlight" id="syntaxHighlight"></div>
@@ -178,8 +179,12 @@
     const syntaxHighlight = document.getElementById('syntaxHighlight');
 
     function updateLineNumbers() {
-      const lines = codeInput.value.split('\n').length;
-      lineNumbers.innerText = Array.from({length: lines}, (_, i) => i + 1).join('\n');
+      const lineCount = codeInput.value.split('\n').length;
+      let numbers = '';
+      for (let i = 1; i <= lineCount + 10; i++) {
+        numbers += i + '\n';
+      }
+      lineNumbers.innerText = numbers;
     }
 
     function updateCursorPosition() {
