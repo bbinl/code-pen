@@ -100,10 +100,11 @@
       font-size: 14px;
       line-height: 1.5;
       user-select: none;
-      overflow: hidden;
+      overflow-y: scroll; /* Enable vertical scrolling */
       position: sticky;
       left: 0;
       z-index: 2;
+      height: 100%; /* Full height to sync with editor */
     }
 
     .code-container {
@@ -119,7 +120,7 @@
       font-size: 14px;
       font-family: inherit;
       line-height: 1.5;
-      color: var(--text-color);
+      color: transparent;
       background: transparent;
       border: none;
       outline: none;
@@ -130,6 +131,8 @@
       tab-size: 2;
       white-space: pre;
       overflow: auto;
+      caret-color: var(--text-color);
+      z-index: 2;
     }
 
     .syntax-highlight {
@@ -145,7 +148,7 @@
       color: transparent;
       pointer-events: none;
       white-space: pre;
-      overflow: hidden;
+      overflow: auto; /* enable scrolling */
       z-index: 1;
     }
 
@@ -209,6 +212,40 @@
         padding-left: 10px;
       }
     }
+
+    /* Syntax highlight colors */
+    .tag { color: #569cd6; }
+    .attribute { color: #9cdcfe; }
+    .comment { color: #6a9955; }
+    .string { color: #ce9178; }
+    .keyword { color: #c586c0; }
+    .number { color: #b5cea8; }
+    .method { color: #dcdcaa; }
+
+    /* Light theme */
+    .light-theme {
+      --bg-color: #f5f5f5;
+      --header-bg: #e0e0e0;
+      --header-color: #006400;
+      --border-color: #ccc;
+      --line-number-bg: #e8e8e8;
+      --line-number-color: #666;
+      --text-color: #333;
+      --dragbar-bg: #bbb;
+      --dragbar-hover: #999;
+      --preview-bg: #fff;
+      --button-bg: #ddd;
+      --button-hover: #ccc;
+      --button-active: #bbb;
+    }
+    
+    .light-theme .tag { color: #800000; }
+    .light-theme .attribute { color: #ff0000; }
+    .light-theme .comment { color: #008000; }
+    .light-theme .string { color: #a31515; }
+    .light-theme .keyword { color: #0000ff; }
+    .light-theme .number { color: #098658; }
+    .light-theme .method { color: #795e26; }
   </style>
 </head>
 <body>
@@ -277,7 +314,22 @@
   <p>Start editing to see live changes...</p>
   
   <script>
-    console.log('JavaScript works too!');
+    // JavaScript example with class and variable declarations
+    class Animal {
+      constructor(name) {
+        this.name = name;
+      }
+      
+      speak() {
+        console.log(\`\${this.name} makes a noise.\`);
+      }
+    }
+    
+    const lion = new Animal('Lion');
+    let sound = "Roar!";
+    var age = 5;
+    
+    lion.speak();
   <\/script>
 </body>
 </html>`;
@@ -285,12 +337,31 @@
     // Initialize editor
     codeInput.value = localStorage.getItem('htmlCode') || initialContent;
 
-    // Basic syntax highlighting patterns
+    // Enhanced syntax highlighting patterns
     const syntaxPatterns = [
-      { regex: /(<\/?[a-zA-Z][^>]*>)/g, class: 'tag' },
-      { regex: /(?:^|\s)(\/\/.*)/g, class: 'comment' },
-      { regex: /(["'].*?["'])/g, class: 'string' },
-      { regex: /(\b(function|var|let|const|if|else|for|while|return|class)\b)/g, class: 'keyword' }
+      // HTML Tags
+      { regex: /(&lt;\/?[a-zA-Z][^&gt;]*&gt;)/g, class: 'tag' },
+      
+      // HTML Attributes
+      { regex: /(\s[a-zA-Z-]+)=/g, class: 'attribute' },
+      
+      // HTML Comments
+      { regex: /(&lt;!--.*?--&gt;)/g, class: 'comment' },
+      
+      // JavaScript Comments
+      { regex: /(\/\/.*|\/\*[\s\S]*?\*\/)/g, class: 'comment' },
+      
+      // JavaScript Strings
+      { regex: /(["'`].*?["'`])/g, class: 'string' },
+      
+      // JavaScript Keywords
+      { regex: /(\b(class|const|let|var|function|if|else|for|while|return|new|this|import|export|default|extends|static|async|await|try|catch|finally|throw)\b)/g, class: 'keyword' },
+      
+      // JavaScript Numbers
+      { regex: /(\b\d+\b)/g, class: 'number' },
+      
+      // JavaScript Methods
+      { regex: /(\.\s*[a-zA-Z_]\w*\s*\()/g, class: 'method' }
     ];
 
     // Update syntax highlighting
@@ -298,16 +369,17 @@
       let text = codeInput.value;
       let highlighted = text;
       
-      // Escape HTML entities
+      // Escape HTML entities first
       highlighted = highlighted.replace(/&/g, "&amp;")
                               .replace(/</g, "&lt;")
                               .replace(/>/g, "&gt;");
       
-      // Apply syntax patterns
-      syntaxPatterns.forEach(pattern => {
+      // Apply syntax patterns in reverse order (for proper nesting)
+      for (let i = syntaxPatterns.length - 1; i >= 0; i--) {
+        const pattern = syntaxPatterns[i];
         highlighted = highlighted.replace(pattern.regex, 
           `<span class="${pattern.class}">$1</span>`);
-      });
+      }
       
       syntaxHighlight.innerHTML = highlighted;
     }
@@ -472,32 +544,32 @@
             
             if (line.startsWith('\t')) {
               codeInput.value = before.substring(0, lineStart) + line.substring(1) + after;
-              codeInput.selectionStart = start - 1;
-              codeInput.selectionEnd = end - 1;
+              codeInput.selectionStart = codeInput.selectionEnd = start - 1;
             }
           }
         } else {
-          // Handle indent with tab
-          if (start === end) {
-            // No selection - insert tab
-            codeInput.value = codeInput.value.substring(0, start) + '\t' + codeInput.value.substring(end);
-            codeInput.selectionStart = codeInput.selectionEnd = start + 1;
-          } else {
-            // Selection - indent all lines
-            const before = codeInput.value.substring(0, start);
-            const after = codeInput.value.substring(end);
-            const selection = codeInput.value.substring(start, end);
-            
-            const indented = selection.replace(/^/gm, '\t');
-            codeInput.value = before + indented + after;
-            codeInput.selectionStart = start;
-            codeInput.selectionEnd = start + indented.length;
-          }
+          // Insert tab character
+          const tab = '\t';
+          codeInput.value = codeInput.value.substring(0, start) + tab + codeInput.value.substring(end);
+          codeInput.selectionStart = codeInput.selectionEnd = start + tab.length;
         }
-        
+        updateLineNumbers();
+        updateCharCount();
         updateSyntaxHighlighting();
-      } else if (e.ctrlKey && e.key === 'Enter') {
-        // Ctrl+Enter to run code
+      }
+      else if (e.key === 'Enter') {
+        setTimeout(() => {
+          updateLineNumbers();
+          updateCharCount();
+          updateSyntaxHighlighting();
+          updateCursorPosition();
+        }, 0);
+      }
+      else if (e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+        setTimeout(updateCursorPosition, 0);
+      }
+      else if (e.ctrlKey && e.key.toLowerCase() === 'r') {
+        e.preventDefault();
         runCode();
       }
     });
@@ -509,63 +581,13 @@
     clearBtn.addEventListener('click', clearEditor);
     themeBtn.addEventListener('click', toggleTheme);
 
-    // Keyboard shortcuts
-    document.addEventListener('keydown', (e) => {
-      if (e.ctrlKey && e.key === 's') {
-        e.preventDefault();
-        runCode();
-      }
-    });
-
-    // Initialize
-    function init() {
-      initTheme();
-      updateLineNumbers();
-      updateCharCount();
-      updateCursorPosition();
-      updatePreview();
-      updateSyntaxHighlighting();
-      
-      // Set up syntax highlight styles
-      const style = document.createElement('style');
-      style.textContent = `
-        .tag { color: #569cd6; }
-        .comment { color: #6a9955; }
-        .string { color: #ce9178; }
-        .keyword { color: #c586c0; }
-        
-        .light-theme {
-          --bg-color: #f5f5f5;
-          --header-bg: #e0e0e0;
-          --header-color: #006400;
-          --border-color: #ccc;
-          --line-number-bg: #e8e8e8;
-          --line-number-color: #666;
-          --text-color: #333;
-          --dragbar-bg: #bbb;
-          --dragbar-hover: #999;
-          --preview-bg: #fff;
-          --button-bg: #ddd;
-          --button-hover: #ccc;
-          --button-active: #bbb;
-        }
-      `;
-      document.head.appendChild(style);
-    }
-
-    // Handle iframe load errors
-    previewFrame.addEventListener('load', () => {
-      try {
-        if (previewFrame.contentDocument && previewFrame.contentDocument.body.innerHTML === '') {
-          previewFrame.contentDocument.write('<html><body style="color:red">Error loading preview</body></html>');
-        }
-      } catch (e) {
-        console.error("Iframe load error:", e);
-      }
-    });
-
-    // Initialize the app
-    init();
+    // Initial setup
+    updateLineNumbers();
+    updateCharCount();
+    updateSyntaxHighlighting();
+    updateCursorPosition();
+    updatePreview();
+    initTheme();
   </script>
 </body>
 </html>
