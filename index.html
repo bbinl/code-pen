@@ -3,211 +3,569 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>🖥️ HTML Live Previewer</title>
+  <title>🖥️ Advanced HTML Live Previewer</title>
   <style>
+    :root {
+      --bg-color: #1e1e1e;
+      --header-bg: #111;
+      --header-color: #0f0;
+      --border-color: #333;
+      --line-number-bg: #2d2d2d;
+      --line-number-color: #888;
+      --text-color: #eee;
+      --dragbar-bg: #444;
+      --dragbar-hover: #666;
+      --preview-bg: #fff;
+      --button-bg: #333;
+      --button-hover: #444;
+      --button-active: #555;
+    }
+
     * {
       box-sizing: border-box;
-    }
-    html, body {
       margin: 0;
       padding: 0;
+    }
+    
+    html, body {
       height: 100%;
-      font-family: monospace;
-      background: #1e1e1e;
-      color: #fff;
+      font-family: 'Fira Code', 'Consolas', monospace;
+      background: var(--bg-color);
+      color: var(--text-color);
       display: flex;
       flex-direction: column;
+      overflow: hidden;
     }
 
     .header {
       padding: 12px 20px;
-      background: #111;
-      border-bottom: 1px solid #333;
+      background: var(--header-bg);
+      border-bottom: 1px solid var(--border-color);
       font-weight: bold;
       font-size: 18px;
-      color: #0f0;
+      color: var(--header-color);
       user-select: none;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .controls {
+      display: flex;
+      gap: 10px;
+    }
+
+    .control-btn {
+      background: var(--button-bg);
+      border: none;
+      color: var(--text-color);
+      padding: 5px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.2s ease;
+    }
+
+    .control-btn:hover {
+      background: var(--button-hover);
+    }
+
+    .control-btn:active {
+      background: var(--button-active);
     }
 
     .container {
       flex: 1;
       display: flex;
       flex-direction: column;
+      overflow: hidden;
     }
 
-    .editor {
+    .editor-wrapper {
       display: flex;
       height: 40vh;
-      background: #1e1e1e;
+      min-height: 100px;
+      background: var(--bg-color);
       overflow: hidden;
+      position: relative;
     }
 
     .line-numbers {
       width: 40px;
-      background: #2d2d2d;
-      color: #888;
+      background: var(--line-number-bg);
+      color: var(--line-number-color);
       padding: 10px 6px;
       text-align: right;
       white-space: pre;
       font-size: 14px;
-      line-height: 1.4;
+      line-height: 1.5;
       user-select: none;
       overflow: hidden;
+      position: sticky;
+      left: 0;
+      z-index: 2;
+    }
+
+    .code-container {
+      flex: 1;
+      position: relative;
+      overflow: auto;
     }
 
     textarea {
-      flex: 1;
-      padding: 10px;
+      width: 100%;
+      height: 100%;
+      padding: 10px 10px 10px 15px;
       font-size: 14px;
-      font-family: monospace;
-      line-height: 1.4;
-      color: #eee;
-      background: #1e1e1e;
+      font-family: inherit;
+      line-height: 1.5;
+      color: var(--text-color);
+      background: transparent;
       border: none;
       outline: none;
       resize: none;
+      position: absolute;
+      top: 0;
+      left: 0;
+      tab-size: 2;
+      white-space: pre;
       overflow: auto;
+    }
+
+    .syntax-highlight {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      min-height: 100%;
+      padding: 10px 10px 10px 15px;
+      font-family: inherit;
+      font-size: 14px;
+      line-height: 1.5;
+      color: transparent;
+      pointer-events: none;
+      white-space: pre;
+      overflow: hidden;
+      z-index: 1;
     }
 
     .dragbar {
       height: 10px;
-      background: #444;
+      background: var(--dragbar-bg);
       cursor: row-resize;
       position: relative;
       transition: background 0.2s ease;
       z-index: 2;
+      flex-shrink: 0;
     }
 
     .dragbar:hover, .dragbar.active {
-      background-color: #666;
+      background-color: var(--dragbar-hover);
     }
 
     .dragbar::before {
-      content: "";
+      content: "≡";
       position: absolute;
       top: 50%;
       left: 50%;
-      width: 24px;
-      height: 24px;
-      background: rgba(255,255,255,0.15);
-      border-radius: 50%;
-      transform: translate(-50%, -50%);
+      transform: translate(-50%, -50%) rotate(90deg);
+      color: rgba(255,255,255,0.5);
+      font-size: 20px;
       pointer-events: none;
     }
 
-    .preview {
+    .preview-container {
       flex: 1;
-      background: #fff;
+      background: var(--preview-bg);
       overflow: auto;
-      border-top: 2px solid #333;
+      position: relative;
     }
 
     iframe {
       width: 100%;
       height: 100%;
       border: none;
+      background: white;
+    }
+
+    .status-bar {
+      padding: 4px 10px;
+      background: var(--header-bg);
+      border-top: 1px solid var(--border-color);
+      font-size: 12px;
+      color: var(--line-number-color);
+      display: flex;
+      justify-content: space-between;
+    }
+
+    @media (max-width: 768px) {
+      .line-numbers {
+        width: 35px;
+        font-size: 12px;
+        padding: 10px 3px;
+      }
+      
+      textarea, .syntax-highlight {
+        padding-left: 10px;
+      }
     }
   </style>
 </head>
 <body>
-  <div class="header">🖥️ HTML Live Previewer — By Mahir Labib</div>
+  <div class="header">
+    <span>🖥️ Advanced HTML Live Previewer</span>
+    <div class="controls">
+      <button class="control-btn" id="runBtn" title="Run (Ctrl+Enter)">▶ Run</button>
+      <button class="control-btn" id="clearBtn" title="Clear Editor">🗑️ Clear</button>
+      <button class="control-btn" id="themeBtn" title="Toggle Theme">🌓 Theme</button>
+    </div>
+  </div>
   <div class="container">
-    <div class="editor" id="editor">
+    <div class="editor-wrapper">
       <div class="line-numbers" id="lineNumbers">1</div>
-      <textarea id="codeInput" placeholder="Write your HTML code here..."></textarea>
+      <div class="code-container">
+        <textarea id="codeInput" spellcheck="false" placeholder="Write your HTML code here..."></textarea>
+        <div class="syntax-highlight" id="syntaxHighlight"></div>
+      </div>
     </div>
     <div class="dragbar" id="dragbar"></div>
-    <div class="preview">
-      <iframe id="previewFrame" sandbox="allow-scripts allow-same-origin"></iframe>
+    <div class="preview-container">
+      <iframe id="previewFrame" sandbox="allow-scripts allow-same-origin allow-modals"></iframe>
+    </div>
+    <div class="status-bar">
+      <span id="cursorPosition">Ln 1, Col 1</span>
+      <span id="charCount">0 chars</span>
     </div>
   </div>
 
   <script>
+    // DOM Elements
     const codeInput = document.getElementById('codeInput');
     const lineNumbers = document.getElementById('lineNumbers');
     const previewFrame = document.getElementById('previewFrame');
     const dragbar = document.getElementById('dragbar');
-    const editor = document.getElementById('editor');
     const container = document.querySelector('.container');
+    const editorWrapper = document.querySelector('.editor-wrapper');
+    const runBtn = document.getElementById('runBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const themeBtn = document.getElementById('themeBtn');
+    const cursorPosition = document.getElementById('cursorPosition');
+    const charCount = document.getElementById('charCount');
+    const syntaxHighlight = document.getElementById('syntaxHighlight');
+    const codeContainer = document.querySelector('.code-container');
 
+    // Initial content with HTML template
+    const initialContent = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Page</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+    }
+    h1 {
+      color: #0066cc;
+    }
+  </style>
+</head>
+<body>
+  <h1>Hello World!</h1>
+  <p>Start editing to see live changes...</p>
+  
+  <script>
+    console.log('JavaScript works too!');
+  <\/script>
+</body>
+</html>`;
+
+    // Initialize editor
+    codeInput.value = localStorage.getItem('htmlCode') || initialContent;
+
+    // Basic syntax highlighting patterns
+    const syntaxPatterns = [
+      { regex: /(<\/?[a-zA-Z][^>]*>)/g, class: 'tag' },
+      { regex: /(?:^|\s)(\/\/.*)/g, class: 'comment' },
+      { regex: /(["'].*?["'])/g, class: 'string' },
+      { regex: /(\b(function|var|let|const|if|else|for|while|return|class)\b)/g, class: 'keyword' }
+    ];
+
+    // Update syntax highlighting
+    function updateSyntaxHighlighting() {
+      let text = codeInput.value;
+      let highlighted = text;
+      
+      // Escape HTML entities
+      highlighted = highlighted.replace(/&/g, "&amp;")
+                              .replace(/</g, "&lt;")
+                              .replace(/>/g, "&gt;");
+      
+      // Apply syntax patterns
+      syntaxPatterns.forEach(pattern => {
+        highlighted = highlighted.replace(pattern.regex, 
+          `<span class="${pattern.class}">$1</span>`);
+      });
+      
+      syntaxHighlight.innerHTML = highlighted;
+    }
+
+    // Update line numbers
     function updateLineNumbers() {
       const lines = codeInput.value.split('\n').length;
       lineNumbers.textContent = Array.from({length: lines}, (_, i) => i + 1).join('\n');
-    }
-
-    function updatePreview() {
-      const doc = previewFrame.contentDocument || previewFrame.contentWindow.document;
-      doc.open();
-      doc.write(codeInput.value);
-      doc.close();
-    }
-
-    codeInput.addEventListener('input', () => {
-      updateLineNumbers();
-      updatePreview();
-    });
-
-    codeInput.addEventListener('scroll', () => {
+      
+      // Sync scroll positions
       lineNumbers.scrollTop = codeInput.scrollTop;
-    });
+    }
 
-    // --- Smooth drag resize ---
-    let isDragging = false;
-    let animationFrame;
-
-    function resizeEditor(y) {
-      const containerTop = container.getBoundingClientRect().top;
-      const newHeight = y - containerTop;
-      if (newHeight > 50 && newHeight < window.innerHeight - 100) {
-        editor.style.height = newHeight + 'px';
+    // Update preview
+    function updatePreview() {
+      try {
+        const doc = previewFrame.contentDocument || previewFrame.contentWindow.document;
+        doc.open();
+        doc.write(codeInput.value);
+        doc.close();
+      } catch (e) {
+        console.error("Error updating preview:", e);
       }
     }
 
-    function onMouseMove(e) {
-      if (!isDragging) return;
-      cancelAnimationFrame(animationFrame);
-      animationFrame = requestAnimationFrame(() => resizeEditor(e.clientY));
+    // Update cursor position
+    function updateCursorPosition() {
+      const cursorPos = codeInput.selectionStart;
+      const text = codeInput.value.substring(0, cursorPos);
+      const line = text.split('\n').length;
+      const col = text.split('\n').pop().length + 1;
+      cursorPosition.textContent = `Ln ${line}, Col ${col}`;
     }
 
-    function onTouchMove(e) {
-      if (!isDragging) return;
-      cancelAnimationFrame(animationFrame);
-      animationFrame = requestAnimationFrame(() => resizeEditor(e.touches[0].clientY));
+    // Update character count
+    function updateCharCount() {
+      const count = codeInput.value.length;
+      const lines = codeInput.value.split('\n').length;
+      charCount.textContent = `${count} chars, ${lines} lines`;
+    }
+
+    // Run code manually
+    function runCode() {
+      updatePreview();
+      localStorage.setItem('htmlCode', codeInput.value);
+    }
+
+    // Clear editor
+    function clearEditor() {
+      if (confirm('Are you sure you want to clear the editor?')) {
+        codeInput.value = '';
+        updateLineNumbers();
+        updateCharCount();
+        updatePreview();
+        localStorage.removeItem('htmlCode');
+      }
+    }
+
+    // Toggle theme
+    function toggleTheme() {
+      document.body.classList.toggle('light-theme');
+      const isLight = document.body.classList.contains('light-theme');
+      localStorage.setItem('editorTheme', isLight ? 'light' : 'dark');
+    }
+
+    // Initialize theme
+    function initTheme() {
+      const savedTheme = localStorage.getItem('editorTheme') || 'dark';
+      if (savedTheme === 'light') {
+        document.body.classList.add('light-theme');
+      }
+    }
+
+    // Vertical resize (dragbar)
+    let isVerticalDragging = false;
+    let verticalAnimationFrame;
+
+    function resizeEditorVertically(y) {
+      const containerTop = container.getBoundingClientRect().top;
+      const newHeight = y - containerTop;
+      const minHeight = 50;
+      const maxHeight = window.innerHeight - 100;
+      
+      if (newHeight > minHeight && newHeight < maxHeight) {
+        editorWrapper.style.height = newHeight + 'px';
+      }
+    }
+
+    function onVerticalMouseMove(e) {
+      if (!isVerticalDragging) return;
+      cancelAnimationFrame(verticalAnimationFrame);
+      verticalAnimationFrame = requestAnimationFrame(() => resizeEditorVertically(e.clientY));
+    }
+
+    function onVerticalTouchMove(e) {
+      if (!isVerticalDragging) return;
+      cancelAnimationFrame(verticalAnimationFrame);
+      verticalAnimationFrame = requestAnimationFrame(() => resizeEditorVertically(e.touches[0].clientY));
     }
 
     dragbar.addEventListener('mousedown', (e) => {
       if (e.button === 0) {
-        isDragging = true;
+        isVerticalDragging = true;
         dragbar.classList.add('active');
         document.body.style.cursor = 'row-resize';
         e.preventDefault();
       }
     });
 
+    document.addEventListener('mousemove', (e) => {
+      onVerticalMouseMove(e);
+    });
+
     document.addEventListener('mouseup', () => {
-      isDragging = false;
-      dragbar.classList.remove('active');
-      document.body.style.cursor = 'default';
+      if (isVerticalDragging) {
+        isVerticalDragging = false;
+        dragbar.classList.remove('active');
+      }
+      document.body.style.cursor = '';
     });
 
-    document.addEventListener('mousemove', onMouseMove);
-
-    dragbar.addEventListener('touchstart', (e) => {
-      isDragging = true;
-      dragbar.classList.add('active');
-      e.preventDefault();
+    document.addEventListener('touchmove', (e) => {
+      onVerticalTouchMove(e);
     });
 
-    document.addEventListener('touchend', () => {
-      isDragging = false;
-      dragbar.classList.remove('active');
+    // Event listeners
+    codeInput.addEventListener('input', () => {
+      updateLineNumbers();
+      updateCharCount();
+      updateSyntaxHighlighting();
+      localStorage.setItem('htmlCode', codeInput.value);
     });
 
-    document.addEventListener('touchmove', onTouchMove);
+    codeInput.addEventListener('scroll', () => {
+      lineNumbers.scrollTop = codeInput.scrollTop;
+      syntaxHighlight.scrollTop = codeInput.scrollTop;
+      syntaxHighlight.scrollLeft = codeInput.scrollLeft;
+    });
 
-    // Init
-    updateLineNumbers();
-    updatePreview();
+    codeInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Tab' && !e.ctrlKey && !e.altKey && !e.metaKey) {
+        e.preventDefault();
+        const start = codeInput.selectionStart;
+        const end = codeInput.selectionEnd;
+        
+        if (e.shiftKey) {
+          // Handle unindent with shift+tab
+          const before = codeInput.value.substring(0, start);
+          const after = codeInput.value.substring(end);
+          const selection = codeInput.value.substring(start, end);
+          
+          if (selection.includes('\n')) {
+            // Multiple lines selected
+            const unindented = selection.replace(/^\t/gm, '');
+            codeInput.value = before + unindented + after;
+            codeInput.selectionStart = start;
+            codeInput.selectionEnd = start + unindented.length;
+          } else {
+            // Single line
+            const lineStart = before.lastIndexOf('\n') + 1;
+            const line = codeInput.value.substring(lineStart, start);
+            
+            if (line.startsWith('\t')) {
+              codeInput.value = before.substring(0, lineStart) + line.substring(1) + after;
+              codeInput.selectionStart = start - 1;
+              codeInput.selectionEnd = end - 1;
+            }
+          }
+        } else {
+          // Handle indent with tab
+          if (start === end) {
+            // No selection - insert tab
+            codeInput.value = codeInput.value.substring(0, start) + '\t' + codeInput.value.substring(end);
+            codeInput.selectionStart = codeInput.selectionEnd = start + 1;
+          } else {
+            // Selection - indent all lines
+            const before = codeInput.value.substring(0, start);
+            const after = codeInput.value.substring(end);
+            const selection = codeInput.value.substring(start, end);
+            
+            const indented = selection.replace(/^/gm, '\t');
+            codeInput.value = before + indented + after;
+            codeInput.selectionStart = start;
+            codeInput.selectionEnd = start + indented.length;
+          }
+        }
+        
+        updateSyntaxHighlighting();
+      } else if (e.ctrlKey && e.key === 'Enter') {
+        // Ctrl+Enter to run code
+        runCode();
+      }
+    });
+
+    codeInput.addEventListener('click', updateCursorPosition);
+    codeInput.addEventListener('keyup', updateCursorPosition);
+
+    runBtn.addEventListener('click', runCode);
+    clearBtn.addEventListener('click', clearEditor);
+    themeBtn.addEventListener('click', toggleTheme);
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+      if (e.ctrlKey && e.key === 's') {
+        e.preventDefault();
+        runCode();
+      }
+    });
+
+    // Initialize
+    function init() {
+      initTheme();
+      updateLineNumbers();
+      updateCharCount();
+      updateCursorPosition();
+      updatePreview();
+      updateSyntaxHighlighting();
+      
+      // Set up syntax highlight styles
+      const style = document.createElement('style');
+      style.textContent = `
+        .tag { color: #569cd6; }
+        .comment { color: #6a9955; }
+        .string { color: #ce9178; }
+        .keyword { color: #c586c0; }
+        
+        .light-theme {
+          --bg-color: #f5f5f5;
+          --header-bg: #e0e0e0;
+          --header-color: #006400;
+          --border-color: #ccc;
+          --line-number-bg: #e8e8e8;
+          --line-number-color: #666;
+          --text-color: #333;
+          --dragbar-bg: #bbb;
+          --dragbar-hover: #999;
+          --preview-bg: #fff;
+          --button-bg: #ddd;
+          --button-hover: #ccc;
+          --button-active: #bbb;
+        }
+      `;
+      document.head.appendChild(style);
+    }
+
+    // Handle iframe load errors
+    previewFrame.addEventListener('load', () => {
+      try {
+        if (previewFrame.contentDocument && previewFrame.contentDocument.body.innerHTML === '') {
+          previewFrame.contentDocument.write('<html><body style="color:red">Error loading preview</body></html>');
+        }
+      } catch (e) {
+        console.error("Iframe load error:", e);
+      }
+    });
+
+    // Initialize the app
+    init();
   </script>
 </body>
 </html>
