@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>🖥️ Advanced HTML Live Previewer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🖥️ HTML Live Previewer (Fixed)</title>
   <style>
     :root {
       --bg-color: #1e1e1e;
@@ -26,162 +26,104 @@
       margin: 0;
       padding: 0;
     }
-    
+
     html, body {
       height: 100%;
-      font-family: 'Fira Code', 'Consolas', monospace;
+      font-family: 'Fira Code', monospace;
       background: var(--bg-color);
       color: var(--text-color);
-      display: flex;
-      flex-direction: column;
       overflow: hidden;
     }
 
     .header {
       padding: 12px 20px;
       background: var(--header-bg);
-      border-bottom: 1px solid var(--border-color);
-      font-weight: bold;
-      font-size: 18px;
       color: var(--header-color);
-      user-select: none;
       display: flex;
       justify-content: space-between;
       align-items: center;
+      font-size: 18px;
     }
 
-    .controls {
-      display: flex;
-      gap: 10px;
-    }
-
-    .control-btn {
+    .controls button {
       background: var(--button-bg);
-      border: none;
       color: var(--text-color);
+      border: none;
       padding: 5px 10px;
+      margin-left: 10px;
       border-radius: 4px;
       cursor: pointer;
-      font-family: inherit;
-      transition: all 0.2s ease;
-    }
-
-    .control-btn:hover {
-      background: var(--button-hover);
-    }
-
-    .control-btn:active {
-      background: var(--button-active);
     }
 
     .container {
-      flex: 1;
+      height: calc(100% - 42px);
       display: flex;
       flex-direction: column;
-      overflow: hidden;
     }
 
     .editor-wrapper {
       display: flex;
-      height: 40vh;
-      min-height: 100px;
-      background: var(--bg-color);
-      overflow: hidden;
       position: relative;
+      height: 50%;
     }
 
     .line-numbers {
+      position: absolute;
+      top: 0;
+      left: 0;
       width: 40px;
+      padding: 10px 6px;
       background: var(--line-number-bg);
       color: var(--line-number-color);
-      padding: 10px 6px;
       text-align: right;
       white-space: pre;
-      font-size: 14px;
-      line-height: 1.5;
       user-select: none;
-      overflow-y: scroll; /* Enable vertical scrolling */
-      position: sticky;
-      left: 0;
-      z-index: 2;
-      height: 100%; /* Full height to sync with editor */
+      pointer-events: none;
     }
 
     .code-container {
       flex: 1;
-      position: relative;
       overflow: auto;
+      padding-left: 40px;
+      position: relative;
+    }
+
+    textarea, .syntax-highlight {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      font-size: 14px;
+      font-family: inherit;
+      line-height: 1.5;
+      border: none;
+      outline: none;
+      white-space: pre;
     }
 
     textarea {
-      width: 100%;
-      height: 100%;
-      padding: 10px 10px 10px 15px;
-      font-size: 14px;
-      font-family: inherit;
-      line-height: 1.5;
-      color: transparent;
       background: transparent;
-      border: none;
-      outline: none;
+      color: var(--text-color);
       resize: none;
-      position: absolute;
-      top: 0;
-      left: 0;
-      tab-size: 2;
-      white-space: pre;
-      overflow: auto;
-      caret-color: var(--text-color);
       z-index: 2;
+      caret-color: white;
     }
 
     .syntax-highlight {
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      min-height: 100%;
-      padding: 10px 10px 10px 15px;
-      font-family: inherit;
-      font-size: 14px;
-      line-height: 1.5;
+      z-index: 1;
       color: transparent;
       pointer-events: none;
-      white-space: pre;
-      overflow: auto; /* enable scrolling */
-      z-index: 1;
     }
 
     .dragbar {
-      height: 10px;
+      height: 8px;
       background: var(--dragbar-bg);
       cursor: row-resize;
-      position: relative;
-      transition: background 0.2s ease;
-      z-index: 2;
-      flex-shrink: 0;
-    }
-
-    .dragbar:hover, .dragbar.active {
-      background-color: var(--dragbar-hover);
-    }
-
-    .dragbar::before {
-      content: "≡";
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%) rotate(90deg);
-      color: rgba(255,255,255,0.5);
-      font-size: 20px;
-      pointer-events: none;
     }
 
     .preview-container {
       flex: 1;
-      background: var(--preview-bg);
-      overflow: auto;
-      position: relative;
     }
 
     iframe {
@@ -194,80 +136,32 @@
     .status-bar {
       padding: 4px 10px;
       background: var(--header-bg);
-      border-top: 1px solid var(--border-color);
       font-size: 12px;
       color: var(--line-number-color);
       display: flex;
       justify-content: space-between;
     }
-
-    @media (max-width: 768px) {
-      .line-numbers {
-        width: 35px;
-        font-size: 12px;
-        padding: 10px 3px;
-      }
-      
-      textarea, .syntax-highlight {
-        padding-left: 10px;
-      }
-    }
-
-    /* Syntax highlight colors */
-    .tag { color: #569cd6; }
-    .attribute { color: #9cdcfe; }
-    .comment { color: #6a9955; }
-    .string { color: #ce9178; }
-    .keyword { color: #c586c0; }
-    .number { color: #b5cea8; }
-    .method { color: #dcdcaa; }
-
-    /* Light theme */
-    .light-theme {
-      --bg-color: #f5f5f5;
-      --header-bg: #e0e0e0;
-      --header-color: #006400;
-      --border-color: #ccc;
-      --line-number-bg: #e8e8e8;
-      --line-number-color: #666;
-      --text-color: #333;
-      --dragbar-bg: #bbb;
-      --dragbar-hover: #999;
-      --preview-bg: #fff;
-      --button-bg: #ddd;
-      --button-hover: #ccc;
-      --button-active: #bbb;
-    }
-    
-    .light-theme .tag { color: #800000; }
-    .light-theme .attribute { color: #ff0000; }
-    .light-theme .comment { color: #008000; }
-    .light-theme .string { color: #a31515; }
-    .light-theme .keyword { color: #0000ff; }
-    .light-theme .number { color: #098658; }
-    .light-theme .method { color: #795e26; }
   </style>
 </head>
 <body>
   <div class="header">
-    <span>🖥️ Advanced HTML Live Previewer</span>
+    <span>🖥️ HTML Live Previewer</span>
     <div class="controls">
-      <button class="control-btn" id="runBtn" title="Run (Ctrl+Enter)">▶ Run</button>
-      <button class="control-btn" id="clearBtn" title="Clear Editor">🗑️ Clear</button>
-      <button class="control-btn" id="themeBtn" title="Toggle Theme">🌓 Theme</button>
+      <button onclick="runCode()">▶ Run</button>
+      <button onclick="clearEditor()">🗑️ Clear</button>
     </div>
   </div>
   <div class="container">
     <div class="editor-wrapper">
       <div class="line-numbers" id="lineNumbers">1</div>
       <div class="code-container">
-        <textarea id="codeInput" spellcheck="false" placeholder="Write your HTML code here..."></textarea>
+        <textarea id="codeInput" spellcheck="false"></textarea>
         <div class="syntax-highlight" id="syntaxHighlight"></div>
       </div>
     </div>
     <div class="dragbar" id="dragbar"></div>
     <div class="preview-container">
-      <iframe id="previewFrame" sandbox="allow-scripts allow-same-origin allow-modals"></iframe>
+      <iframe id="previewFrame" sandbox="allow-scripts allow-same-origin"></iframe>
     </div>
     <div class="status-bar">
       <span id="cursorPosition">Ln 1, Col 1</span>
@@ -276,318 +170,67 @@
   </div>
 
   <script>
-    // DOM Elements
     const codeInput = document.getElementById('codeInput');
     const lineNumbers = document.getElementById('lineNumbers');
     const previewFrame = document.getElementById('previewFrame');
-    const dragbar = document.getElementById('dragbar');
-    const container = document.querySelector('.container');
-    const editorWrapper = document.querySelector('.editor-wrapper');
-    const runBtn = document.getElementById('runBtn');
-    const clearBtn = document.getElementById('clearBtn');
-    const themeBtn = document.getElementById('themeBtn');
     const cursorPosition = document.getElementById('cursorPosition');
     const charCount = document.getElementById('charCount');
     const syntaxHighlight = document.getElementById('syntaxHighlight');
-    const codeContainer = document.querySelector('.code-container');
 
-    // Initial content with HTML template
-    const initialContent = `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>My Page</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 0;
-      padding: 20px;
-    }
-    h1 {
-      color: #0066cc;
-    }
-  </style>
-</head>
-<body>
-  <h1>Hello World!</h1>
-  <p>Start editing to see live changes...</p>
-  
-  <script>
-    // JavaScript example with class and variable declarations
-    class Animal {
-      constructor(name) {
-        this.name = name;
-      }
-      
-      speak() {
-        console.log(\`\${this.name} makes a noise.\`);
-      }
-    }
-    
-    const lion = new Animal('Lion');
-    let sound = "Roar!";
-    var age = 5;
-    
-    lion.speak();
-  <\/script>
-</body>
-</html>`;
-
-    // Initialize editor
-    codeInput.value = localStorage.getItem('htmlCode') || initialContent;
-
-    // Enhanced syntax highlighting patterns
-    const syntaxPatterns = [
-      // HTML Tags
-      { regex: /(&lt;\/?[a-zA-Z][^&gt;]*&gt;)/g, class: 'tag' },
-      
-      // HTML Attributes
-      { regex: /(\s[a-zA-Z-]+)=/g, class: 'attribute' },
-      
-      // HTML Comments
-      { regex: /(&lt;!--.*?--&gt;)/g, class: 'comment' },
-      
-      // JavaScript Comments
-      { regex: /(\/\/.*|\/\*[\s\S]*?\*\/)/g, class: 'comment' },
-      
-      // JavaScript Strings
-      { regex: /(["'`].*?["'`])/g, class: 'string' },
-      
-      // JavaScript Keywords
-      { regex: /(\b(class|const|let|var|function|if|else|for|while|return|new|this|import|export|default|extends|static|async|await|try|catch|finally|throw)\b)/g, class: 'keyword' },
-      
-      // JavaScript Numbers
-      { regex: /(\b\d+\b)/g, class: 'number' },
-      
-      // JavaScript Methods
-      { regex: /(\.\s*[a-zA-Z_]\w*\s*\()/g, class: 'method' }
-    ];
-
-    // Update syntax highlighting
-    function updateSyntaxHighlighting() {
-      let text = codeInput.value;
-      let highlighted = text;
-      
-      // Escape HTML entities first
-      highlighted = highlighted.replace(/&/g, "&amp;")
-                              .replace(/</g, "&lt;")
-                              .replace(/>/g, "&gt;");
-      
-      // Apply syntax patterns in reverse order (for proper nesting)
-      for (let i = syntaxPatterns.length - 1; i >= 0; i--) {
-        const pattern = syntaxPatterns[i];
-        highlighted = highlighted.replace(pattern.regex, 
-          `<span class="${pattern.class}">$1</span>`);
-      }
-      
-      syntaxHighlight.innerHTML = highlighted;
-    }
-
-    // Update line numbers
     function updateLineNumbers() {
       const lines = codeInput.value.split('\n').length;
-      lineNumbers.textContent = Array.from({length: lines}, (_, i) => i + 1).join('\n');
-      
-      // Sync scroll positions
-      lineNumbers.scrollTop = codeInput.scrollTop;
+      lineNumbers.innerText = Array.from({length: lines}, (_, i) => i + 1).join('\n');
     }
 
-    // Update preview
-    function updatePreview() {
-      try {
-        const doc = previewFrame.contentDocument || previewFrame.contentWindow.document;
-        doc.open();
-        doc.write(codeInput.value);
-        doc.close();
-      } catch (e) {
-        console.error("Error updating preview:", e);
-      }
-    }
-
-    // Update cursor position
     function updateCursorPosition() {
-      const cursorPos = codeInput.selectionStart;
-      const text = codeInput.value.substring(0, cursorPos);
-      const line = text.split('\n').length;
-      const col = text.split('\n').pop().length + 1;
-      cursorPosition.textContent = `Ln ${line}, Col ${col}`;
+      const pos = codeInput.selectionStart;
+      const textUptoCursor = codeInput.value.substring(0, pos);
+      const lines = textUptoCursor.split('\n');
+      const line = lines.length;
+      const col = lines[lines.length - 1].length + 1;
+      cursorPosition.innerText = `Ln ${line}, Col ${col}`;
     }
 
-    // Update character count
     function updateCharCount() {
-      const count = codeInput.value.length;
-      const lines = codeInput.value.split('\n').length;
-      charCount.textContent = `${count} chars, ${lines} lines`;
+      charCount.innerText = `${codeInput.value.length} chars`;
     }
 
-    // Run code manually
     function runCode() {
-      updatePreview();
-      localStorage.setItem('htmlCode', codeInput.value);
+      const doc = previewFrame.contentDocument || previewFrame.contentWindow.document;
+      doc.open();
+      doc.write(codeInput.value);
+      doc.close();
     }
 
-    // Clear editor
     function clearEditor() {
-      if (confirm('Are you sure you want to clear the editor?')) {
+      if (confirm('Clear all code?')) {
         codeInput.value = '';
         updateLineNumbers();
         updateCharCount();
-        updatePreview();
-        localStorage.removeItem('htmlCode');
+        runCode();
       }
     }
 
-    // Toggle theme
-    function toggleTheme() {
-      document.body.classList.toggle('light-theme');
-      const isLight = document.body.classList.contains('light-theme');
-      localStorage.setItem('editorTheme', isLight ? 'light' : 'dark');
-    }
-
-    // Initialize theme
-    function initTheme() {
-      const savedTheme = localStorage.getItem('editorTheme') || 'dark';
-      if (savedTheme === 'light') {
-        document.body.classList.add('light-theme');
-      }
-    }
-
-    // Vertical resize (dragbar)
-    let isVerticalDragging = false;
-    let verticalAnimationFrame;
-
-    function resizeEditorVertically(y) {
-      const containerTop = container.getBoundingClientRect().top;
-      const newHeight = y - containerTop;
-      const minHeight = 50;
-      const maxHeight = window.innerHeight - 100;
-      
-      if (newHeight > minHeight && newHeight < maxHeight) {
-        editorWrapper.style.height = newHeight + 'px';
-      }
-    }
-
-    function onVerticalMouseMove(e) {
-      if (!isVerticalDragging) return;
-      cancelAnimationFrame(verticalAnimationFrame);
-      verticalAnimationFrame = requestAnimationFrame(() => resizeEditorVertically(e.clientY));
-    }
-
-    function onVerticalTouchMove(e) {
-      if (!isVerticalDragging) return;
-      cancelAnimationFrame(verticalAnimationFrame);
-      verticalAnimationFrame = requestAnimationFrame(() => resizeEditorVertically(e.touches[0].clientY));
-    }
-
-    dragbar.addEventListener('mousedown', (e) => {
-      if (e.button === 0) {
-        isVerticalDragging = true;
-        dragbar.classList.add('active');
-        document.body.style.cursor = 'row-resize';
-        e.preventDefault();
-      }
-    });
-
-    document.addEventListener('mousemove', (e) => {
-      onVerticalMouseMove(e);
-    });
-
-    document.addEventListener('mouseup', () => {
-      if (isVerticalDragging) {
-        isVerticalDragging = false;
-        dragbar.classList.remove('active');
-      }
-      document.body.style.cursor = '';
-    });
-
-    document.addEventListener('touchmove', (e) => {
-      onVerticalTouchMove(e);
-    });
-
-    // Event listeners
     codeInput.addEventListener('input', () => {
       updateLineNumbers();
+      updateCursorPosition();
       updateCharCount();
-      updateSyntaxHighlighting();
-      localStorage.setItem('htmlCode', codeInput.value);
     });
 
     codeInput.addEventListener('scroll', () => {
-      lineNumbers.scrollTop = codeInput.scrollTop;
+      lineNumbers.style.marginTop = `-${codeInput.scrollTop}px`;
       syntaxHighlight.scrollTop = codeInput.scrollTop;
       syntaxHighlight.scrollLeft = codeInput.scrollLeft;
-    });
-
-    codeInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Tab' && !e.ctrlKey && !e.altKey && !e.metaKey) {
-        e.preventDefault();
-        const start = codeInput.selectionStart;
-        const end = codeInput.selectionEnd;
-        
-        if (e.shiftKey) {
-          // Handle unindent with shift+tab
-          const before = codeInput.value.substring(0, start);
-          const after = codeInput.value.substring(end);
-          const selection = codeInput.value.substring(start, end);
-          
-          if (selection.includes('\n')) {
-            // Multiple lines selected
-            const unindented = selection.replace(/^\t/gm, '');
-            codeInput.value = before + unindented + after;
-            codeInput.selectionStart = start;
-            codeInput.selectionEnd = start + unindented.length;
-          } else {
-            // Single line
-            const lineStart = before.lastIndexOf('\n') + 1;
-            const line = codeInput.value.substring(lineStart, start);
-            
-            if (line.startsWith('\t')) {
-              codeInput.value = before.substring(0, lineStart) + line.substring(1) + after;
-              codeInput.selectionStart = codeInput.selectionEnd = start - 1;
-            }
-          }
-        } else {
-          // Insert tab character
-          const tab = '\t';
-          codeInput.value = codeInput.value.substring(0, start) + tab + codeInput.value.substring(end);
-          codeInput.selectionStart = codeInput.selectionEnd = start + tab.length;
-        }
-        updateLineNumbers();
-        updateCharCount();
-        updateSyntaxHighlighting();
-      }
-      else if (e.key === 'Enter') {
-        setTimeout(() => {
-          updateLineNumbers();
-          updateCharCount();
-          updateSyntaxHighlighting();
-          updateCursorPosition();
-        }, 0);
-      }
-      else if (e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
-        setTimeout(updateCursorPosition, 0);
-      }
-      else if (e.ctrlKey && e.key.toLowerCase() === 'r') {
-        e.preventDefault();
-        runCode();
-      }
     });
 
     codeInput.addEventListener('click', updateCursorPosition);
     codeInput.addEventListener('keyup', updateCursorPosition);
 
-    runBtn.addEventListener('click', runCode);
-    clearBtn.addEventListener('click', clearEditor);
-    themeBtn.addEventListener('click', toggleTheme);
-
-    // Initial setup
+    codeInput.value = `<!DOCTYPE html>\n<html>\n<head><title>Test</title></head>\n<body>\n<h1>Hello!</h1>\n</body>\n</html>`;
+    runCode();
     updateLineNumbers();
     updateCharCount();
-    updateSyntaxHighlighting();
     updateCursorPosition();
-    updatePreview();
-    initTheme();
   </script>
 </body>
 </html>
