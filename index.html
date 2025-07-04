@@ -1,241 +1,435 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>🖥️ HTML Live Previewer (Fixed)</title>
-  <style>
-    :root {
-      --bg-color: #1e1e1e;
-      --header-bg: #111;
-      --header-color: #0f0;
-      --border-color: #333;
-      --line-number-bg: #2d2d2d;
-      --line-number-color: #888;
-      --text-color: #eee;
-      --dragbar-bg: #444;
-      --dragbar-hover: #666;
-      --preview-bg: #fff;
-      --button-bg: #333;
-      --button-hover: #444;
-      --button-active: #555;
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>Fastpen : a client side only codepen alternative</title>
+    <meta name="description" content="Just type some html/css/js, preview the result, share the url. It's super fast and works on mobile too.">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>☄️</text></svg>">
+
+</head>
+
+<body>
+<noscript>Sorry, this app needs javascript to work.</noscript>
+
+<input type="radio" name="viewing" id="see-code" value="code" checked/>
+<input type="radio" name="viewing" id="see-preview" value="preview"/>
+<nav>
+    <a href="/">Fastpen</a>
+    <label for="see-code">Code</label>
+    <label for="see-preview">Preview</label>
+</nav>
+<div id="split"> 
+    <textarea
+            autocorrect="off"
+            autocapitalize="off"
+            spellcheck="false"
+            aria-label="Code editor" id="editor">
+<article id="follows">
+    <h1>Welcome to fastpen</h1>
+    <p>Edit HTML code on the left, preview it on the right</p>
+    <p>Share the page address to show your work</p>
+    <p>Save your best code in your favorites</p> 
+</article>
+<canvas id="canvas"></canvas>
+
+<style>
+    body{
+        overflow:hidden; 
+        height:100vh;
+        display:flex;
+        flex-direction:column;
+        align-items:center;
+        justify-content:center;
+        font-family: sans-serif;
+        color:#333; 
+        perspective: 800px;
+    }
+    article{
+            position:relative;
+            z-index:1;
+            background:white;
+            max-width:500px;
+            padding:20px;
+            border-radius:4px;
+    }
+    h1{
+        text-align:center;
+        margin:0;
+    }
+    canvas{
+        position:absolute;
+        left:0;
+        top:0;
+    }
+</style>
+
+<script>
+    const follows = document.getElementById("follows");
+
+
+    document.addEventListener('mousemove', event=>{
+        const angleX=(event.clientX-window.innerWidth/2)/window.innerWidth*20;
+        const angleY=(window.innerHeight/2-event.clientY)/window.innerHeight*20;
+        follows.style.transform='rotateY('+angleX+'deg) rotateX('+angleY+'deg)'
+    })
+</script>
+
+<script>
+    const canvas = document.getElementById("canvas");
+    const ctx=canvas.getContext("2d",{ alpha: false });
+   
+    let maxX,maxY;
+    let points=[],
+        width=window.innerWidth,
+        height=window.innerHeight;
+    for(let i=0; i<50;i++){
+        points.push({
+            x:Math.random()*width,
+            y:Math.random()*height,
+            sx:(Math.random()-0.5)*10,
+            sy:(Math.random()-0.5)*10
+        }) 
+    }
+
+    function resetCanvasSize(){
+
+        width=window.innerWidth;
+        height=window.innerHeight;
+        canvas.width=width;
+        canvas.height=height;
+        ctx.fillStyle="#fff"
+        ctx.rect(0, 0, width, height);
+        ctx.fill(); 
+        
+    }
+    resetCanvasSize()
+    window.addEventListener("resize", resetCanvasSize);
+
+    let frame=0;
+    function drawLines(){ 
+        frame++ 
+
+        ctx.fillStyle='rgba(255,255,255,0.01)'
+        ctx.fillRect(0,0,width,height)
+
+        ctx.lineWidth=40;
+        ctx.lineCap = "round";
+
+        points.forEach((point,i)=>{
+            point.sy+=0.05
+            point.x+=point.sx
+            point.y+=point.sy
+
+            if(point.x<0){
+                point.x=0
+                point.sx*=-1
+            }
+            if(point.y<0){
+                point.y=0
+                point.sy*=-1
+            }
+            if(point.x>width){
+                point.x=width
+                point.sx*=-1
+            }
+            if(point.y>height){
+                point.y=height
+                point.sy*=-1
+            }
+
+ 
+            ctx.strokeStyle =`hsl(${(i*6524+frame/10)%360},100%,80%)` 
+            ctx.beginPath(); 
+            ctx.moveTo(point.x, point.y); 
+            ctx.lineTo(point.x+point.sx, point.y+point.sy); 
+            ctx.stroke(); 
+  
+        })
+
+        requestAnimationFrame(drawLines);
+    }
+
+    drawLines();
+</script>
+
+    
+        
+        
+        
+   
+    
+    </textarea> 
+    <iframe aria-label="Code preview" srcdoc="" id="preview"></iframe>
+</div>
+<script>
+    const editor = document.getElementById("editor");
+    const preview = document.getElementById("preview");
+
+
+    function onCodeChange() {
+        updatePreview()
+        updateURL()
+    }
+
+    function updatePreview() {
+        const newCode=`<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head><body>${editor.value}</body></html>`;
+
+        if(newCode!==preview.srcdoc) {
+            preview.srcdoc = newCode
+        }
+    }
+
+    function updateURL() {
+        const uncompressed = editor.value
+        compress(uncompressed).then(compressed => {
+            if (uncompressed == editor.value) {
+                window.location.hash = '#' + encodeURIComponent(compressed)
+            }
+        })
+    }
+
+
+    editor.addEventListener("keyup", onCodeChange);
+    editor.addEventListener("change", onCodeChange);
+
+    editor.style.width = (localStorage.getItem("ta-size") || window.innerWidth / 2) + "px";
+
+    new ResizeObserver(() => localStorage.setItem("ta-size", editor.scrollWidth)).observe(editor);
+
+    async function compress(str) {
+        // Convert the string to a byte stream.
+        const stream = new Blob([str]).stream();
+
+        // Create a compressed stream.
+        const compressedStream = stream.pipeThrough(
+            new CompressionStream("gzip")
+        )
+        const u8=await streamToBuffer(compressedStream)
+        var b64encoded = btoa(String.fromCharCode.apply(null, u8));
+
+        return b64encoded
+
+    }
+
+    function streamToBuffer(stream) {
+        const ints = [];
+        const reader=stream.getReader()
+        function readNextChunk() {
+            return reader.read().then(({ done, value }) => {  
+              if (done) {  
+                return new Uint8Array(ints) 
+              }else{
+                  ints.push(...value)
+                  return readNextChunk()
+              }
+
+            })
+        }
+        return readNextChunk() 
+ 
+    }
+
+ 
+    async function decompress(b64encoded) {
+        const compressedBytes = new Uint8Array(atob(b64encoded).split("").map(function (c) {
+            return c.charCodeAt(0);
+        }));
+        const stream = new Blob([compressedBytes]).stream(); 
+        const decompressedStream = stream.pipeThrough(
+            new DecompressionStream("gzip")
+        );
+        const u8=await streamToBuffer(decompressedStream) 
+        return new TextDecoder().decode(u8.buffer);
+    }
+
+    if (window.location.hash) {
+        editor.value = 'Decompressing...'
+        editor.disabled = true
+        const decoded = decodeURIComponent(window.location.hash.slice(1))
+        decompress(decoded).then(source => {
+            editor.disabled = false
+            editor.value = source
+            updatePreview()
+        }, error => {
+            editor.disabled = false
+            editor.value = error.message
+            updatePreview()
+            console.error(error)
+        })
+    } else {
+        updatePreview();
+    }
+
+    // Tab support
+    function supportTabIndentation(textarea) {
+        const offsetToLineAndOffset = (lines, offset) => {
+            let line = 0
+            while (offset > lines[line].length && line < lines.length - 1) {
+                offset = offset - lines[line].length - 1
+                line++
+            }
+            return {line, offset}
+        }
+        const LineAndOffsetToOffset = (lines, line, offset) => {
+            for (let i = 0; i < line; i++)
+                offset += lines[i].length + 1
+
+            return offset
+        }
+
+        textarea.addEventListener('keydown', e => {
+            if (e.key == 'Tab') {
+                e.preventDefault()
+                const lines = e.target.value.split('\n')
+
+                const selection = [offsetToLineAndOffset(lines, textarea.selectionStart),
+                    offsetToLineAndOffset(lines, textarea.selectionEnd)]
+                for (var l = selection[0].line; l <= selection[1].line; l++) {
+                    const originalLength = lines[l].length
+                    if (e.shiftKey) {
+                        lines[l] = lines[l].replace(/^ {0,4}/, '')
+                    } else {
+                        lines[l] = '    ' + lines[l]
+                    }
+                    // How much the line moved
+                    const delta = lines[l].length - originalLength
+                    // Update the user selection if it's on this line
+                    selection.forEach((sel) => {
+                        if (sel.line == l) {
+                            sel.offset = Math.max(0, sel.offset + delta)
+                        }
+                    })
+                }
+                textarea.value = lines.join('\n')
+                textarea.selectionStart = LineAndOffsetToOffset(lines, selection[0].line, selection[0].offset)
+                textarea.selectionEnd = LineAndOffsetToOffset(lines, selection[1].line, selection[1].offset)
+            }
+            if(e.key==='Enter'){
+                const {selectionStart, selectionEnd, value}= textarea
+
+                const linesBeforeCursor=value.slice(0,selectionStart).split('\n')
+                const lastLine=linesBeforeCursor[linesBeforeCursor.length-1]
+                const indentation=lastLine.match(/^\s+/)?.[0] || ''
+                
+                textarea.value=value.slice(0,selectionStart)+'\n'+indentation+value.slice(selectionEnd)
+                textarea.selectionStart=selectionStart+1+indentation.length
+                textarea.selectionEnd=textarea.selectionStart
+
+                e.preventDefault()
+            }
+        })
+    }
+
+    supportTabIndentation(document.getElementById('editor'))
+
+    // Disable ctrl S
+    document.addEventListener("keydown", event=>{
+        if(event.key=='s' && event.ctrlKey){
+            event.preventDefault()
+        }
+    })
+
+</script>
+
+<style>
+    body {
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
     }
 
     * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
+        box-sizing: border-box;
     }
 
-    html, body {
-      height: 100%;
-      font-family: 'Fira Code', monospace;
-      background: var(--bg-color);
-      color: var(--text-color);
-      overflow: hidden;
+    #split {
+        display: flex;
+        width: 100vw;
+        height: 100vh;
+        overflow: hidden;
     }
 
-    .header {
-      padding: 12px 20px;
-      background: var(--header-bg);
-      color: var(--header-color);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-size: 18px;
+    #editor {
+        resize: horizontal;
+        flex-grow: 0;
+        flex-shrink: 0;
+        box-shadow: 5px 5px 5px rgba(0, 0, 0, 0.1) inset;
+        border: none;
+        padding: 20px;
+        line-height: 20px;
+        background: #333;
+        color: white;
+        font-family: monospace;
+        max-width: 80%;
     }
 
-    .controls button {
-      background: var(--button-bg);
-      color: var(--text-color);
-      border: none;
-      padding: 5px 10px;
-      margin-left: 10px;
-      border-radius: 4px;
-      cursor: pointer;
+    #preview {
+        flex-grow: 1;
+        flex-shrink: 1;
+        border: none;
+        box-shadow: 5px 5px 5px rgba(0, 0, 0, 0.1) inset;
+        overflow: hidden;
+    }
+    nav{
+        display: none;
+    }
+    input[type="radio"]{
+        position: absolute;
+        left: -500px;
+    }
+       nav>*{
+           text-decoration: none;
+            flex-grow: 1;
+           text-align: center;
+            border-bottom: 4px solid transparent;
+           cursor: pointer;
+           color: white;
+        }
+       nav>*:hover{
+           background: rgba(0,0,0,0.1);
+       }
+       nav>a{
+           flex-grow: 1;
+       }
+       nav>label{
+
+            text-transform: uppercase;
+       }
+        input#see-code:checked ~ nav label[for="see-code"],
+        input#see-preview:checked ~ nav label[for="see-preview"]{
+            border-bottom-color:  yellow;
+        }
+
+    @media screen and (max-width: 800px){
+        #split{
+          height: calc(100vh - 40px);
+
+        }
+        #editor{
+            resize: none;
+            flex-grow: 1;
+            width: auto !important;
+            max-width: none;
+        }
+        nav{
+            display: flex;
+            background: #222;
+            line-height: 40px;
+            color: white;
+            font-family:sans-serif;
+            font-weight: bold;
+        }
+
+        input#see-code:checked ~ #split > #preview{
+            display: none;
+        }
+        input#see-preview:checked ~ #split >  #editor{
+            display: none;
+        }
     }
 
-    .container {
-      height: calc(100% - 42px);
-      display: flex;
-      flex-direction: column;
-    }
 
-    .editor-wrapper {
-      display: flex;
-      position: relative;
-      height: 50%;
-    }
-
-    .line-numbers {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 40px;
-      padding: 10px 6px;
-      background: var(--line-number-bg);
-      color: var(--line-number-color);
-      text-align: right;
-      white-space: pre;
-      user-select: none;
-      pointer-events: none;
-      height: 100%;
-    }
-
-    .code-container {
-      flex: 1;
-      overflow: auto;
-      padding-left: 40px;
-      position: relative;
-    }
-
-    textarea, .syntax-highlight {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      font-size: 14px;
-      font-family: inherit;
-      line-height: 1.5;
-      border: none;
-      outline: none;
-      white-space: pre;
-    }
-
-    textarea {
-      background: transparent;
-      color: var(--text-color);
-      resize: none;
-      z-index: 2;
-      caret-color: white;
-    }
-
-    .syntax-highlight {
-      z-index: 1;
-      color: transparent;
-      pointer-events: none;
-    }
-
-    .dragbar {
-      height: 8px;
-      background: var(--dragbar-bg);
-      cursor: row-resize;
-    }
-
-    .preview-container {
-      flex: 1;
-    }
-
-    iframe {
-      width: 100%;
-      height: 100%;
-      border: none;
-      background: white;
-    }
-
-    .status-bar {
-      padding: 4px 10px;
-      background: var(--header-bg);
-      font-size: 12px;
-      color: var(--line-number-color);
-      display: flex;
-      justify-content: space-between;
-    }
-  </style>
-</head>
-<body>
-  <div class="header">
-    <span>🖥️ HTML Live Previewer</span>
-    <div class="controls">
-      <button onclick="runCode()">▶ Run</button>
-      <button onclick="clearEditor()">🗑️ Clear</button>
-    </div>
-  </div>
-  <div class="container">
-    <div class="editor-wrapper">
-      <div class="line-numbers" id="lineNumbers"></div>
-      <div class="code-container">
-        <textarea id="codeInput" spellcheck="false"></textarea>
-        <div class="syntax-highlight" id="syntaxHighlight"></div>
-      </div>
-    </div>
-    <div class="dragbar" id="dragbar"></div>
-    <div class="preview-container">
-      <iframe id="previewFrame" sandbox="allow-scripts allow-same-origin"></iframe>
-    </div>
-    <div class="status-bar">
-      <span id="cursorPosition">Ln 1, Col 1</span>
-      <span id="charCount">0 chars</span>
-    </div>
-  </div>
-
-  <script>
-    const codeInput = document.getElementById('codeInput');
-    const lineNumbers = document.getElementById('lineNumbers');
-    const previewFrame = document.getElementById('previewFrame');
-    const cursorPosition = document.getElementById('cursorPosition');
-    const charCount = document.getElementById('charCount');
-    const syntaxHighlight = document.getElementById('syntaxHighlight');
-
-    function updateLineNumbers() {
-      const lineCount = codeInput.value.split('\n').length;
-      let numbers = '';
-      for (let i = 1; i <= lineCount + 10; i++) {
-        numbers += i + '\n';
-      }
-      lineNumbers.innerText = numbers;
-    }
-
-    function updateCursorPosition() {
-      const pos = codeInput.selectionStart;
-      const textUptoCursor = codeInput.value.substring(0, pos);
-      const lines = textUptoCursor.split('\n');
-      const line = lines.length;
-      const col = lines[lines.length - 1].length + 1;
-      cursorPosition.innerText = `Ln ${line}, Col ${col}`;
-    }
-
-    function updateCharCount() {
-      charCount.innerText = `${codeInput.value.length} chars`;
-    }
-
-    function runCode() {
-      const doc = previewFrame.contentDocument || previewFrame.contentWindow.document;
-      doc.open();
-      doc.write(codeInput.value);
-      doc.close();
-    }
-
-    function clearEditor() {
-      if (confirm('Clear all code?')) {
-        codeInput.value = '';
-        updateLineNumbers();
-        updateCharCount();
-        runCode();
-      }
-    }
-
-    codeInput.addEventListener('input', () => {
-      updateLineNumbers();
-      updateCursorPosition();
-      updateCharCount();
-    });
-
-    codeInput.addEventListener('scroll', () => {
-      lineNumbers.style.marginTop = `-${codeInput.scrollTop}px`;
-      syntaxHighlight.scrollTop = codeInput.scrollTop;
-      syntaxHighlight.scrollLeft = codeInput.scrollLeft;
-    });
-
-    codeInput.addEventListener('click', updateCursorPosition);
-    codeInput.addEventListener('keyup', updateCursorPosition);
-
-    codeInput.value = `<!DOCTYPE html>\n<html>\n<head><title>Test</title></head>\n<body>\n<h1>Hello!</h1>\n</body>\n</html>`;
-    runCode();
-    updateLineNumbers();
-    updateCharCount();
-    updateCursorPosition();
-  </script>
+</style>
 </body>
 </html>
