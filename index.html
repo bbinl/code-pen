@@ -8,14 +8,17 @@
     * {
       box-sizing: border-box;
     }
-    body, html {
-      margin: 0; padding: 0; height: 100%;
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
       font-family: monospace;
       background: #1e1e1e;
       color: #fff;
       display: flex;
       flex-direction: column;
     }
+
     .header {
       padding: 12px 20px;
       background: #111;
@@ -25,56 +28,60 @@
       color: #0f0;
       user-select: none;
     }
+
     .container {
       flex: 1;
       display: flex;
       flex-direction: column;
-      height: 100%;
     }
+
     .editor {
       display: flex;
       height: 40vh;
-      overflow: hidden;
       background: #1e1e1e;
+      overflow: hidden;
     }
+
     .line-numbers {
+      width: 40px;
       background: #2d2d2d;
-      color: #666;
-      padding: 10px 8px;
+      color: #888;
+      padding: 10px 6px;
       text-align: right;
-      user-select: none;
       white-space: pre;
       font-size: 14px;
-      border-right: 1px solid #444;
-      width: 40px;
+      line-height: 1.4;
+      user-select: none;
+      overflow: hidden;
     }
+
     textarea {
       flex: 1;
       padding: 10px;
       font-size: 14px;
       font-family: monospace;
+      line-height: 1.4;
       color: #eee;
       background: #1e1e1e;
       border: none;
       outline: none;
       resize: none;
-      line-height: 1.4;
       overflow: auto;
-      scrollbar-width: thin;
     }
+
     .dragbar {
       height: 10px;
       background: #444;
       cursor: row-resize;
       position: relative;
-      z-index: 10;
-      transition: background-color 0.2s ease, height 0.2s ease;
+      transition: background 0.2s ease;
+      z-index: 2;
     }
+
     .dragbar:hover, .dragbar.active {
       background-color: #666;
-      height: 16px;
-      border-radius: 8px;
     }
+
     .dragbar::before {
       content: "";
       position: absolute;
@@ -82,17 +89,19 @@
       left: 50%;
       width: 24px;
       height: 24px;
-      background: rgba(255 255 255 / 0.15);
+      background: rgba(255,255,255,0.15);
       border-radius: 50%;
       transform: translate(-50%, -50%);
       pointer-events: none;
     }
+
     .preview {
       flex: 1;
       background: #fff;
-      border-top: 2px solid #333;
       overflow: auto;
+      border-top: 2px solid #333;
     }
+
     iframe {
       width: 100%;
       height: 100%;
@@ -103,7 +112,7 @@
 <body>
   <div class="header">🖥️ HTML Live Previewer — By Mahir Labib</div>
   <div class="container">
-    <div class="editor">
+    <div class="editor" id="editor">
       <div class="line-numbers" id="lineNumbers">1</div>
       <textarea id="codeInput" placeholder="Write your HTML code here..."></textarea>
     </div>
@@ -118,16 +127,14 @@
     const lineNumbers = document.getElementById('lineNumbers');
     const previewFrame = document.getElementById('previewFrame');
     const dragbar = document.getElementById('dragbar');
-    const editor = document.querySelector('.editor');
+    const editor = document.getElementById('editor');
     const container = document.querySelector('.container');
 
-    // Update line numbers
     function updateLineNumbers() {
       const lines = codeInput.value.split('\n').length;
-      lineNumbers.textContent = Array.from({ length: lines }, (_, i) => i + 1).join('\n');
+      lineNumbers.textContent = Array.from({length: lines}, (_, i) => i + 1).join('\n');
     }
 
-    // Update preview
     function updatePreview() {
       const doc = previewFrame.contentDocument || previewFrame.contentWindow.document;
       doc.open();
@@ -144,8 +151,30 @@
       lineNumbers.scrollTop = codeInput.scrollTop;
     });
 
-    // Drag resize
+    // --- Smooth drag resize ---
     let isDragging = false;
+    let animationFrame;
+
+    function resizeEditor(y) {
+      const containerTop = container.getBoundingClientRect().top;
+      const newHeight = y - containerTop;
+      if (newHeight > 50 && newHeight < window.innerHeight - 100) {
+        editor.style.height = newHeight + 'px';
+      }
+    }
+
+    function onMouseMove(e) {
+      if (!isDragging) return;
+      cancelAnimationFrame(animationFrame);
+      animationFrame = requestAnimationFrame(() => resizeEditor(e.clientY));
+    }
+
+    function onTouchMove(e) {
+      if (!isDragging) return;
+      cancelAnimationFrame(animationFrame);
+      animationFrame = requestAnimationFrame(() => resizeEditor(e.touches[0].clientY));
+    }
+
     dragbar.addEventListener('mousedown', (e) => {
       if (e.button === 0) {
         isDragging = true;
@@ -156,48 +185,27 @@
     });
 
     document.addEventListener('mouseup', () => {
-      if (isDragging) {
-        isDragging = false;
-        dragbar.classList.remove('active');
-        document.body.style.cursor = 'default';
-      }
+      isDragging = false;
+      dragbar.classList.remove('active');
+      document.body.style.cursor = 'default';
     });
 
-    document.addEventListener('mousemove', (e) => {
-      if (!isDragging) return;
-      const containerTop = container.getBoundingClientRect().top;
-      const newHeight = e.clientY - containerTop;
-      if (newHeight > 50 && newHeight < window.innerHeight - 50) {
-        editor.style.height = newHeight + 'px';
-      }
-    });
+    document.addEventListener('mousemove', onMouseMove);
 
-    // Touch support
     dragbar.addEventListener('touchstart', (e) => {
       isDragging = true;
       dragbar.classList.add('active');
-      document.body.style.cursor = 'row-resize';
       e.preventDefault();
     });
 
     document.addEventListener('touchend', () => {
-      if (isDragging) {
-        isDragging = false;
-        dragbar.classList.remove('active');
-        document.body.style.cursor = 'default';
-      }
+      isDragging = false;
+      dragbar.classList.remove('active');
     });
 
-    document.addEventListener('touchmove', (e) => {
-      if (!isDragging) return;
-      const touchY = e.touches[0].clientY;
-      const containerTop = container.getBoundingClientRect().top;
-      const newHeight = touchY - containerTop;
-      if (newHeight > 50 && newHeight < window.innerHeight - 50) {
-        editor.style.height = newHeight + 'px';
-      }
-    });
+    document.addEventListener('touchmove', onTouchMove);
 
+    // Init
     updateLineNumbers();
     updatePreview();
   </script>
